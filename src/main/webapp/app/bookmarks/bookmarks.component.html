@@ -1,0 +1,185 @@
+<div>
+  <jhi-alert-error></jhi-alert-error>
+
+  <jhi-alert></jhi-alert>
+
+  <div class="container-fluid" id="bookmark-filters">
+    <div class="row row-cols-2 gx-5">
+      <div class="col-3">
+        <h4 id="bookmark-profile-heading" data-cy="BookmarkProfileHeading">
+          <span jhiTranslate="bookmarkApp.filter.profile.title">Profile</span>
+        </h4>
+
+        <div class="row g-3 p-3">
+          <select
+            class="form-control"
+            id="filter_profile"
+            data-cy="profile"
+            name="profile"
+            [(ngModel)]="selectedProfile"
+            (change)="onProfileChange()"
+            [disabled]="isProfilesLoading"
+          >
+            <option [ngValue]="null"></option>
+            <option [ngValue]="profileOption" *ngFor="let profileOption of profilesSharedCollection; trackBy: trackProfileById">
+              {{ profileOption.profileName }}
+            </option>
+          </select>
+        </div>
+
+        <h4 id="bookmark-category-heading" data-cy="BookmarkCategoryHeading">
+          <div class="row row-cols-2 gx-5">
+            <div class="col-auto">
+              <span jhiTranslate="bookmarkApp.filter.category.title">Category</span>
+            </div>
+            <div class="col-1 btn-group">
+              <button
+                id="category-create-entity"
+                data-cy="categoryCreateButton"
+                class="btn btn-outline-primary category-create-entity"
+                [routerLink]="['/category/new']"
+                [queryParams]="getCategoryQueryParams()"
+              >
+                <fa-icon icon="plus"></fa-icon>
+              </button>
+              <button class="btn btn-outline-primary me-2" (click)="resetCategories()" [disabled]="isCategoriesLoading">
+                <fa-icon icon="sync" [spin]="isCategoriesLoading"></fa-icon>
+              </button>
+            </div>
+          </div>
+        </h4>
+
+        <tree-root #tree [nodes]="categoriesSharedCollection" [(state)]="selectedCategory" (stateChange)="onCategoryChange()"> </tree-root>
+      </div>
+
+      <div class="col-9">
+        <h4 id="bookmark-item-search" data-cy="BookmarkItemSearch">
+          <span jhiTranslate="bookmarkApp.data.search.title">Search</span>
+        </h4>
+
+        <div class="row g-3 p-3">
+          <div class="col">
+            <input
+              id="bookmark-item-search-input"
+              class="form-control"
+              [(ngModel)]="textSearch"
+              (change)="refreshItems()"
+              autocomplete="false"
+            />
+          </div>
+          <div class="col-auto">
+            <button
+              id="bookmark-item-search-button"
+              data-cy="categoryCreateButton"
+              class="btn btn-outline-primary category-create-entity create-category"
+              (submit)="refreshItems()"
+            >
+              <fa-icon icon="search"></fa-icon>
+              <span jhiTranslate="bookmarkApp.filter.category.searchLabel"> Search </span>
+            </button>
+          </div>
+        </div>
+
+        <h4 id="bookmark-item-table" data-cy="BookmarkItemTable">
+          <div class="row row-cols-2 gx-5">
+            <div class="col-auto">
+              <span jhiTranslate="bookmarkApp.data.bookmarks.title">Bookmarks</span>
+            </div>
+            <div class="col-1 btn-group">
+              <button
+                id="item-create-entity"
+                data-cy="categoryCreateButton"
+                class="btn btn-outline-primary category-create-entity create-category"
+                [routerLink]="['/item/new']"
+                [queryParams]="getItemQueryParams()"
+              >
+                <fa-icon icon="plus"></fa-icon>
+              </button>
+              <button class="btn btn-outline-primary me-2" (click)="resetItems()" [disabled]="isItemsLoading">
+                <fa-icon icon="sync" [spin]="isItemsLoading"></fa-icon>
+              </button>
+            </div>
+          </div>
+        </h4>
+
+        <div class="alert alert-warning" id="no-result" *ngIf="items?.length === 0">
+          <span jhiTranslate="bookmarkApp.data.bookmarks.notFound">No items found</span>
+        </div>
+
+        <div class="table-responsive" id="entities" *ngIf="items && items.length > 0">
+          <table class="table table-striped" aria-describedby="page-heading">
+            <thead>
+              <tr jhiSort [(predicate)]="predicate" [(ascending)]="ascending" (sortChange)="refreshItems()">
+                <th scope="col" jhiSortBy="id">
+                  <span jhiTranslate="bookmarkApp.data.bookmarks.columns.id">ID</span>
+                  <fa-icon icon="sort"></fa-icon>
+                </th>
+                <th scope="col" jhiSortBy="title">
+                  <span jhiTranslate="bookmarkApp.data.bookmarks.columns.title">Title</span>
+                  <fa-icon icon="sort"></fa-icon>
+                </th>
+                <th scope="col" jhiSortBy="description">
+                  <span jhiTranslate="bookmarkApp.data.bookmarks.columns.description">Description</span>
+                  <fa-icon icon="sort"></fa-icon>
+                </th>
+                <th scope="col" jhiSortBy="type">
+                  <span jhiTranslate="bookmarkApp.data.bookmarks.columns.type">Type</span>
+                  <fa-icon icon="sort"></fa-icon>
+                </th>
+                <th scope="col" jhiSortBy="content">
+                  <span jhiTranslate="bookmarkApp.data.bookmarks.columns.content">Content</span>
+                  <fa-icon icon="sort"></fa-icon>
+                </th>
+                <th scope="col" jhiSortBy="category.categoryName">
+                  <span jhiTranslate="bookmarkApp.data.bookmarks.columns.category">Category</span>
+                  <fa-icon icon="sort"></fa-icon>
+                </th>
+                <th scope="col"></th>
+              </tr>
+            </thead>
+            <tbody
+              infinite-scroll
+              (scrolled)="loadPage(page + 1)"
+              [infiniteScrollDisabled]="page >= links['last']"
+              [infiniteScrollDistance]="0"
+            >
+              <tr *ngFor="let item of items; trackBy: trackId" data-cy="entityTable">
+                <td>{{ item.id }}</td>
+                <td>
+                  <a [routerLink]="['/item', item.id, 'view']">{{ item.title }}</a>
+                </td>
+                <td>{{ item.description }}</td>
+                <td jhiTranslate="{{ 'bookmarkApp.ItemType.' + item.type }}">{{ item.type }}</td>
+                <td>
+                  <a *ngIf="item.type === 'LINK'" href="{{ item.content }}">{{ item.content }}</a>
+                  <span *ngIf="item.type !== 'LINK'">{{ item.content }}</span>
+                </td>
+                <td>
+                  <div *ngIf="item.category">
+                    <a [routerLink]="['/category', item.category?.id, 'view']">{{ item.category?.categoryName }}</a>
+                  </div>
+                </td>
+                <td class="text-end">
+                  <div class="btn-group">
+                    <button
+                      type="submit"
+                      [routerLink]="['/item', item.id, 'edit']"
+                      class="btn btn-outline-primary btn-sm"
+                      data-cy="entityEditButton"
+                    >
+                      <fa-icon icon="pencil-alt"></fa-icon>
+                    </button>
+
+                    <button type="submit" (click)="delete(item)" class="btn btn-outline-danger btn-sm" data-cy="entityDeleteButton">
+                      <fa-icon icon="times"></fa-icon>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
